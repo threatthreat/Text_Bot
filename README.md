@@ -13,6 +13,6 @@ text: https://freecarrierlookup.com/.
 
 Make sure you Turn On Allowing Secure apps: https://myaccount.google.com/lesssecureapps.
 
-## ToDo
+## Todo
 * Automatically implement MMS Gateway based on address.
 * Add infrastructure to send text messages periodically
