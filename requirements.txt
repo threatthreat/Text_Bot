@@ -1,4 +1,3 @@
-telethon
-asyncio
-python-dotenv
-Flask
+pyrogram
+tgcrypto
+flask
