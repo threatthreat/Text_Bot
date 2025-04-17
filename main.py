@@ -1,11 +1,16 @@
 import asyncio
 import random
+import os
 from pyrogram import Client
 from flask import Flask
 import threading
+from dotenv import load_dotenv
 
-# Bot Config
-BOT_TOKEN = "7842258511:AAF-M2b8BEakT0fhf6_Lwiq00a-ez-G_rsY"
+# Load secrets from .env
+load_dotenv()
+API_ID = int(os.getenv("API_ID"))
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 TARGET_CHAT = "@MoviesandSeries36"
 
 movies = [
@@ -30,7 +35,7 @@ movies = [
     "Doctor 2021", "Maaveeran 2023", "Thunivu 2023"
 ]
 
-app = Client("movie_search_bot", bot_token=BOT_TOKEN)
+app = Client("movie_search_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # Flask Web Server for UptimeRobot
 web_app = Flask("")
