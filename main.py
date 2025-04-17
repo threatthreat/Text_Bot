@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 
 # Load secrets from .env
 load_dotenv()
-API_ID = int(os.getenv("API_ID"))
-API_HASH = os.getenv("API_HASH")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+API_ID = int(os.getenv("16708960"))
+API_HASH = os.getenv("dda7630be99593256cb7c520eae0ce6d")
+BOT_TOKEN = os.getenv("7842258511:AAF-M2b8BEakT0fhf6_Lwiq00a-ez-G_rsY")
 TARGET_CHAT = "@MoviesandSeries36"
 
 movies = [
