@@ -72,4 +72,4 @@ def main():
     asyncio.run(spam_movies())
 
 if __name__ == "__main__":
-    main()￼Enter
+    main()
