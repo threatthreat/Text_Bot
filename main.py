@@ -2,15 +2,16 @@ import asyncio
 import random
 import os
 from pyrogram import Client
+from pyrogram.enums import ParseMode
 from flask import Flask
 import threading
 from dotenv import load_dotenv
 
-# Load secrets from .env
+# Load secrets from .env or Railway environment
 load_dotenv()
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+STRING_SESSION = os.getenv("STRING_SESSION")
 TARGET_CHAT = "@MoviesandSeries36"
 
 movies = [
@@ -35,34 +36,40 @@ movies = [
     "Doctor 2021", "Maaveeran 2023", "Thunivu 2023"
 ]
 
-app = Client("movie_search_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+# Userbot client using string session
+app = Client(
+    name="userbot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    session_string=STRING_SESSION,
+    parse_mode=ParseMode.HTML
+)
 
-# Flask Web Server for UptimeRobot
+# Flask Web Server for Railway uptime
 web_app = Flask("")
 
 @web_app.route("/")
 def home():
-    return "Bot is running!"
+    return "Userbot is running!"
 
 def run_flask():
-    web_app.run(host="0.0.0.0", port=8080)
+    web_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
 
 async def spam_movies():
-    await app.start()
-    print("Bot started. Sending movie names every 8 minutes...")
-    while True:
-        movie = random.choice(movies)
-        try:
-            await app.send_message(TARGET_CHAT, movie)
-            print(f"Sent: {movie}")
-        except Exception as e:
-            print(f"Error: {e}")
-        await asyncio.sleep(480)  # 8 minutes
+    async with app:
+        print("Userbot started. Sending movie names every 8 minutes...")
+        while True:
+            movie = random.choice(movies)
+            try:
+                await app.send_message(TARGET_CHAT, movie)
+                print(f"Sent: {movie}")
+            except Exception as e:
+                print(f"Error: {e}")
+            await asyncio.sleep(480)  # 8 minutes
 
-# Run Flask and Bot together
 def main():
     threading.Thread(target=run_flask).start()
     asyncio.run(spam_movies())
 
 if __name__ == "__main__":
-    main()
+    main()￼Enter
