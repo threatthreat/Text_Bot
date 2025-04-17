@@ -1,298 +1,63 @@
 import asyncio
 import random
-import hashlib
-from telethon import TelegramClient, events
-from telethon.sessions import StringSession
+from pyrogram import Client
 from flask import Flask
 import threading
 
-# API Details
-API_ID = 29010066  
-API_HASH = "2e0d5a624f4eb3991826a9abe13c78b7"
-SESSION_STRING = "1BVtsOKEBu3BMRGFVb4veoTMMXd5FB1Xy0fOHZLUJtEbkJk27i0nCXG-R9oBgGYK1pBwsQYmmme-ZnPekM2EG_e-2rDYHAvy4m98jcglQ6RhkF01Kt6nCkgUq8jF5l2KQM1qY4vjOwGBHVYofT1X2vLeDoWHyiuumQezY_IWR9E9NTvUNIEzRIAXVSyk_uiuz-6FfeqI1_hW-8Rsg6RrEN5afe56Ww5lBUhEw8LxxKETb9xUV4Y8gfcqJhJqjOR4IV4kviz9dtPiTBBDg8k-HbRWv5wLTkSAbUCC8gpYRcmIE21oXnmu687r42iYYCSSGiqrWmJrqcgCKtlrjsPGYyfzXf-EmH6E="
+# Bot Config
+BOT_TOKEN = "7842258511:AAF-M2b8BEakT0fhf6_Lwiq00a-ez-G_rsY"
+TARGET_CHAT = "@MoviesandSeries36"
 
-# Channel details
-SOURCE_CHANNEL = -1002118541881  
-DEST_CHANNEL = -1002621781430    
+movies = [
+    # Hollywood
+    "John Wick 2014", "John Wick Chapter 2", "John Wick Chapter 3", "John Wick Chapter 4",
+    "Inception 2010", "Avengers Endgame 2019", "The Dark Knight 2008", "Interstellar 2014",
+    "Avatar 2009", "Iron Man 2008", "Doctor Strange 2022", "Deadpool 2016",
+    "Tenet 2020", "Oppenheimer 2023", "Dune 2021", "Fight Club 1999", "The Matrix 1999",
+    "Gladiator 2000", "No Time To Die 2021", "The Batman 2022", "Fast X 2023",
+    "Spider-Man No Way Home 2021", "The Meg 2 2023", "Transformers Rise of the Beasts",
+    "The Flash 2023", "The Equalizer 3", "Extraction 2", "The Marvels 2023",
+    "Black Panther Wakanda Forever", "The Whale 2022", "The Menu 2022", "Fall 2022",
+    "Bullet Train 2022", "Prey 2022", "Jungle Cruise", "The Suicide Squad 2021",
+    "Knives Out 2019", "Glass Onion 2022", "Mortal Kombat 2021", "Ready Player One",
+    "Alita Battle Angel", "Logan 2017", "The Wolverine 2013", "X-Men Days of Future Past",
+    "The Hunger Games", "Now You See Me", "Oblivion 2013", "Edge of Tomorrow",
+    # Hindi
+    "Pathaan 2023", "Jawaan 2023", "War 2019", "RRR 2022", "Gadar 2 2023",
+    "Shershaah 2021", "Animal 2023", "Brahmastra 2022", "Dhamaka 2021",
+    # Tamil
+    "Leo 2023", "Master 2021", "Vikram 2022", "Beast 2022", "Jailer 2023",
+    "Doctor 2021", "Maaveeran 2023", "Thunivu 2023"
+]
 
-# Initialize Telegram Client
-client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
+app = Client("movie_search_bot", bot_token=BOT_TOKEN)
 
-# Track forwarded files to prevent duplicates
-forwarded_files = set()
-file_count = 0  
-delay = random.randint(3, 4)  
-restricted = False  
+# Flask Web Server for UptimeRobot
+web_app = Flask("")
 
-def get_file_hash(message):
-    """Generate a hash for the file to detect duplicates."""
-    if message.file:
-        return hashlib.md5(str(message.file.id).encode()).hexdigest()
-    return None
-
-async def adjust_speed():
-    """ Adjust speed dynamically based on Telegram's response. """
-    global delay, restricted
-    if restricted:
-        delay = min(delay + 5, 40)  
-        print(f"⚠️ Restricted! Increasing delay to {delay} sec...")
-    else:
-        delay = max(delay - 2, 8)  
-        print(f"✅ Unrestricted! Decreasing delay to {delay} sec...")
-
-async def forward_messages():
-    """ Forward messages with auto-reconnect. """
-    global file_count, delay, restricted
-    while True:
-        try:
-            async for message in client.iter_messages(SOURCE_CHANNEL):
-                if message.media:
-                    file_hash = get_file_hash(message)
-                    if file_hash and file_hash not in forwarded_files:
-                        try:
-                            if message.file and message.file.ext.lower() in [".mp4", ".mkv"]:
-                                await message.forward_to(DEST_CHANNEL)
-                                forwarded_files.add(file_hash)
-                                file_count += 1
-                                print(f"✅ Forwarded: {message.id} | Total: {file_count} | Delay: {delay} sec")
-
-                                await adjust_speed()
-                                await asyncio.sleep(delay)
-
-                                if file_count % 1000 == 0:
-                                    print("🔄 Processed 1000 files. Taking a 5-minute break...")
-                                    await asyncio.sleep(300)
-
-                                if file_count % 5000 == 0:
-                                    print("🚀 5000 files forwarded. Taking a 30-minute break...")
-                                    await asyncio.sleep(1800)
-
-                        except Exception as e:
-                            print(f"⚠️ Error forwarding {message.id}: {e}")
-                            restricted = True  
-                            await asyncio.sleep(20)
-
-        except Exception as e:
-            print(f"⚠️ Disconnected! Reconnecting in 10 sec... Error: {e}")
-            await asyncio.sleep(10)
-
-@client.on(events.NewMessage(chats=[SOURCE_CHANNEL]))
-async def new_message_handler(event):
-    """ Forward new messages with auto-reconnect. """
-    global file_count, delay, restricted
-    while True:
-        try:
-            if event.message.media:
-                file_hash = get_file_hash(event.message)
-                if file_hash and file_hash not in forwarded_files:
-                    try:
-                        if event.message.file and event.message.file.ext.lower() in [".mp4", ".mkv"]:
-                            await event.message.forward_to(DEST_CHANNEL)
-                            forwarded_files.add(file_hash)
-                            file_count += 1
-                            print(f"✅ Forwarded new message: {event.message.id} | Total: {file_count} | Delay: {delay} sec")
-
-                            await adjust_speed()
-                            await asyncio.sleep(delay)
-
-                            if file_count % 1000 == 0:
-                                print("🔄 Processed 1000 files. Taking a 5-minute break...")
-                                await asyncio.sleep(300)
-
-                            if file_count % 5000 == 0:
-                                print("🚀 5000 files forwarded. Taking a 30-minute break...")
-                                await asyncio.sleep(1800)
-
-                    except Exception as e:
-                        print(f"⚠️ Error forwarding new message: {e}")
-                        restricted = True  
-                        await asyncio.sleep(20)
-
-        except Exception as e:
-            print(f"⚠️ Disconnected! Reconnecting in 10 sec... Error: {e}")
-            await asyncio.sleep(10)
-
-async def check_connection():
-    """ Check if bot is connected, if not, reconnect. """
-    while True:
-        if not await client.is_connected():
-            print("⚠️ Bot disconnected! Reconnecting...")
-            await client.connect()
-        await asyncio.sleep(30)  
-
-async def main():
-    """ Start bot with auto-reconnect. """
-    while True:
-        try:
-            print("🚀 Starting userbot...")
-            await client.start()
-            print("✅ Userbot started! Listening for new messages...")
-            await asyncio.gather(forward_messages(), check_connection(), client.run_until_disconnected())
-        except Exception as e:
-            print(f"⚠️ Error: {e}. Restarting in 10 sec...")
-            await asyncio.sleep(10)
-
-# Flask App for UptimeRobot
-app = Flask(__name__)
-
-@app.route("/")
+@web_app.route("/")
 def home():
-    return "Userbot is running!"
+    return "Bot is running!"
 
 def run_flask():
-    app.run(host="0.0.0.0", port=8080)
+    web_app.run(host="0.0.0.0", port=8080)
 
-# Start Flask in a separate threadimport asyncio
-import random
-import hashlib
-from telethon import TelegramClient, events
-from telethon.sessions import StringSession
-from flask import Flask
-import threading
-
-# API Details
-API_ID = 29010066  
-API_HASH = "2e0d5a624f4eb3991826a9abe13c78b7"
-SESSION_STRING = "1BVtsOKEBu3BMRGFVb4veoTMMXd5FB1Xy0fOHZLUJtEbkJk27i0nCXG-R9oBgGYK1pBwsQYmmme-ZnPekM2EG_e-2rDYHAvy4m98jcglQ6RhkF01Kt6nCkgUq8jF5l2KQM1qY4vjOwGBHVYofT1X2vLeDoWHyiuumQezY_IWR9E9NTvUNIEzRIAXVSyk_uiuz-6FfeqI1_hW-8Rsg6RrEN5afe56Ww5lBUhEw8LxxKETb9xUV4Y8gfcqJhJqjOR4IV4kviz9dtPiTBBDg8k-HbRWv5wLTkSAbUCC8gpYRcmIE21oXnmu687r42iYYCSSGiqrWmJrqcgCKtlrjsPGYyfzXf-EmH6E="
-
-# Channel details
-SOURCE_CHANNEL = -1002118541881  
-DEST_CHANNEL = -1002621781430    
-
-# Initialize Telegram Client
-client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
-
-# Track forwarded files to prevent duplicates
-forwarded_files = set()
-file_count = 0  
-delay = random.randint(8, 15)  
-restricted = False  
-
-def get_file_hash(message):
-    """Generate a hash for the file to detect duplicates."""
-    if message.file:
-        return hashlib.md5(str(message.file.id).encode()).hexdigest()
-    return None
-
-async def adjust_speed():
-    """ Adjust speed dynamically based on Telegram's response. """
-    global delay, restricted
-    if restricted:
-        delay = min(delay + 5, 40)  
-        print(f"⚠️ Restricted! Increasing delay to {delay} sec...")
-    else:
-        delay = max(delay - 2, 8)  
-        print(f"✅ Unrestricted! Decreasing delay to {delay} sec...")
-
-async def forward_messages():
-    """ Forward messages with auto-reconnect. """
-    global file_count, delay, restricted
+async def spam_movies():
+    await app.start()
+    print("Bot started. Sending movie names every 8 minutes...")
     while True:
+        movie = random.choice(movies)
         try:
-            async for message in client.iter_messages(SOURCE_CHANNEL):
-                if message.media:
-                    file_hash = get_file_hash(message)
-                    if file_hash and file_hash not in forwarded_files:
-                        try:
-                            if message.file and message.file.ext.lower() in [".mp4", ".mkv"]:
-                                await message.forward_to(DEST_CHANNEL)
-                                forwarded_files.add(file_hash)
-                                file_count += 1
-                                print(f"✅ Forwarded: {message.id} | Total: {file_count} | Delay: {delay} sec")
-
-                                await adjust_speed()
-                                await asyncio.sleep(delay)
-
-                                if file_count % 1000 == 0:
-                                    print("🔄 Processed 1000 files. Taking a 5-minute break...")
-                                    await asyncio.sleep(300)
-
-                                if file_count % 5000 == 0:
-                                    print("🚀 5000 files forwarded. Taking a 30-minute break...")
-                                    await asyncio.sleep(1800)
-
-                        except Exception as e:
-                            print(f"⚠️ Error forwarding {message.id}: {e}")
-                            restricted = True  
-                            await asyncio.sleep(20)
-
+            await app.send_message(TARGET_CHAT, movie)
+            print(f"Sent: {movie}")
         except Exception as e:
-            print(f"⚠️ Disconnected! Reconnecting in 10 sec... Error: {e}")
-            await asyncio.sleep(10)
+            print(f"Error: {e}")
+        await asyncio.sleep(480)  # 8 minutes
 
-@client.on(events.NewMessage(chats=[SOURCE_CHANNEL]))
-async def new_message_handler(event):
-    """ Forward new messages with auto-reconnect. """
-    global file_count, delay, restricted
-    while True:
-        try:
-            if event.message.media:
-                file_hash = get_file_hash(event.message)
-                if file_hash and file_hash not in forwarded_files:
-                    try:
-                        if event.message.file and event.message.file.ext.lower() in [".mp4", ".mkv"]:
-                            await event.message.forward_to(DEST_CHANNEL)
-                            forwarded_files.add(file_hash)
-                            file_count += 1
-                            print(f"✅ Forwarded new message: {event.message.id} | Total: {file_count} | Delay: {delay} sec")
+# Run Flask and Bot together
+def main():
+    threading.Thread(target=run_flask).start()
+    asyncio.run(spam_movies())
 
-                            await adjust_speed()
-                            await asyncio.sleep(delay)
-
-                            if file_count % 1000 == 0:
-                                print("🔄 Processed 1000 files. Taking a 5-minute break...")
-                                await asyncio.sleep(300)
-
-                            if file_count % 5000 == 0:
-                                print("🚀 5000 files forwarded. Taking a 30-minute break...")
-                                await asyncio.sleep(1800)
-
-                    except Exception as e:
-                        print(f"⚠️ Error forwarding new message: {e}")
-                        restricted = True  
-                        await asyncio.sleep(20)
-
-        except Exception as e:
-            print(f"⚠️ Disconnected! Reconnecting in 10 sec... Error: {e}")
-            await asyncio.sleep(10)
-
-async def check_connection():
-    """ Check if bot is connected, if not, reconnect. """
-    while True:
-        if not await client.is_connected():
-            print("⚠️ Bot disconnected! Reconnecting...")
-            await client.connect()
-        await asyncio.sleep(30)  
-
-async def main():
-    """ Start bot with auto-reconnect. """
-    while True:
-        try:
-            print("🚀 Starting userbot...")
-            await client.start()
-            print("✅ Userbot started! Listening for new messages...")
-            await asyncio.gather(forward_messages(), check_connection(), client.run_until_disconnected())
-        except Exception as e:
-            print(f"⚠️ Error: {e}. Restarting in 10 sec...")
-            await asyncio.sleep(10)
-
-# Flask App for UptimeRobot
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "Userbot is running!"
-
-def run_flask():
-    app.run(host="0.0.0.0", port=8080)
-
-# Start Flask in a separate thread
-threading.Thread(target=run_flask, daemon=True).start()
-
-# Start the bot
-client.loop.run_until_complete(main())
-
-threading.Thread(target=run_flask, daemon=True).start()
-
-# Start the bot
-client.loop.run_until_complete(main())
+if __name__ == "__main__":
+    main()
